@@ -4,7 +4,7 @@
   "main": "index.js",
   "version": "0.0.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "xo",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "preferGlobal": true,
@@ -23,6 +23,7 @@
   "homepage": "https://github.com/patrickhulce/node-siegem#readme",
   "dependencies": {
     "colors": "^1.1.2",
+    "lodash": "^4.14.2",
     "yargs": "^4.7.1"
   },
   "devDependencies": {
