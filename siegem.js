@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 process.title = process.title.replace(/^node(.*)/, 'siegem$1');
 
-var _ = require('lodash');
 var fs = require('fs');
+var _ = require('lodash');
 var yargs = require('yargs');
 
 var Strategy = require('./lib/strategy');
@@ -87,7 +87,7 @@ var getAbsolutePath = function (p) {
 
 var constructTarget = function (options, i) {
   var url = options._[0];
-  if (!url) { throw Error('Malformed request options on line ' + (i + 1) + ': url required'); }
+  if (!url) { throw new Error('Malformed request options on line ' + (i + 1) + ': url required'); }
   if (options.headers && !_.isArray(options.headers)) { options.headers = [options.headers]; }
 
   var target = new Target().url(options._[0]);
