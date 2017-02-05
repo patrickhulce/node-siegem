@@ -2,6 +2,7 @@
 process.title = process.title.replace(/^node(.*)/, 'siegem$1');
 
 var fs = require('fs');
+var path = require('path');
 var _ = require('lodash');
 var yargs = require('yargs');
 
@@ -80,11 +81,6 @@ var parser = yargs.
     }
   });
 
-var getAbsolutePath = function (p) {
-  if (p.charAt(0) === '/') { return p; }
-  return process.cwd() + '/' + p;
-};
-
 var constructTarget = function (options, i) {
   var url = options._[0];
   if (!url) { throw new Error('Malformed request options on line ' + (i + 1) + ': url required'); }
@@ -95,7 +91,7 @@ var constructTarget = function (options, i) {
   if (options.headers) { options.headers.forEach(_.unary(target.header)); }
   if (options.data) {
     if (options.data.charAt(0) === '@') {
-      var filePath = getAbsolutePath(options.data.slice(1));
+      var filePath = path.join(process.cwd(), (options.data.slice(1)));
       target.data(fs.readFileSync(filePath));
     } else {
       target.data(options.data);
