@@ -91,7 +91,7 @@ var constructTarget = function (options, i) {
   if (options.headers) { options.headers.forEach(_.unary(target.header)); }
   if (options.data) {
     if (options.data.charAt(0) === '@') {
-      var filePath = path.join(process.cwd(), (options.data.slice(1)));
+      var filePath = path.resolve(process.cwd(), (options.data.slice(1)));
       target.data(fs.readFileSync(filePath));
     } else {
       target.data(options.data);
@@ -111,7 +111,7 @@ var reporter = new ClassicReporter({quiet: options.quiet});
 
 var targets = [];
 if (options.file) {
-  var file = fs.readFileSync(getAbsolutePath(options.file), 'utf8');
+  var file = fs.readFileSync(path.resolve(process.cwd(), options.file), 'utf8');
   var lines = file.split('\n').filter(Boolean);
   var parseOpts = parser.parse.bind(parser);
   targets = lines.map(parseOpts).map(constructTarget);

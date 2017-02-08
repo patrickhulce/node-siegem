@@ -44,6 +44,7 @@
       ],
       "xo/filename-case": 0,
       "no-else-return": 0,
+      "one-var": 0,
       "max-statements-per-line": [
         "error",
         {
