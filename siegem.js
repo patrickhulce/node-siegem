@@ -3,6 +3,7 @@ process.title = process.title.replace(/^node(.*)/, 'siegem$1');
 
 var fs = require('fs');
 var path = require('path');
+var http = require('http');
 var _ = require('lodash');
 var yargs = require('yargs');
 
@@ -128,6 +129,9 @@ var attack = new Attack({
   targets: targets,
   reporters: [reporter],
 });
+
+// Force connection sharing, to avoid TCP handshake time from dominating
+http.globalAgent.maxSockets = options.concurrent;
 
 attack.start();
 
