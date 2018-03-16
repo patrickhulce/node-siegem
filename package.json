@@ -5,7 +5,7 @@
   "version": "0.0.0",
   "scripts": {
     "test": "xo",
-    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
+    "semantic-release": "semantic-release"
   },
   "preferGlobal": true,
   "bin": {
@@ -27,7 +27,7 @@
     "yargs": "^4.7.1"
   },
   "devDependencies": {
-    "semantic-release": "^4.3.5",
+    "semantic-release": "^11.2.0",
     "xo": "^0.16.0"
   },
   "xo": {
