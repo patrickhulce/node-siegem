@@ -1,7 +1,6 @@
 {
   "name": "siegem",
   "description": "SIEGE iMproved",
-  "main": "index.js",
   "version": "0.0.0",
   "scripts": {
     "test": "xo",
