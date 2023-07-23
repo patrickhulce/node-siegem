@@ -2,10 +2,7 @@
   "name": "siegem",
   "description": "SIEGE iMproved",
   "version": "0.0.0",
-  "scripts": {
-    "test": "xo",
-    "semantic-release": "semantic-release"
-  },
+  "scripts": {},
   "preferGlobal": true,
   "bin": {
     "siegem": "siegem.js"
@@ -24,47 +21,5 @@
     "colors": "^1.1.2",
     "lodash": "^4.14.2",
     "yargs": "^4.7.1"
-  },
-  "devDependencies": {
-    "semantic-release": "^11.2.0",
-    "xo": "^0.16.0"
-  },
-  "xo": {
-    "env": [
-      "browser",
-      "node",
-      "mocha"
-    ],
-    "space": 2,
-    "rules": {
-      "complexity": [
-        "warn",
-        10
-      ],
-      "xo/filename-case": 0,
-      "no-else-return": 0,
-      "one-var": 0,
-      "max-statements-per-line": [
-        "error",
-        {
-          "max": 2
-        }
-      ],
-      "brace-style": [
-        "error",
-        "1tbs",
-        {
-          "allowSingleLine": true
-        }
-      ],
-      "comma-dangle": [
-        "error",
-        "only-multiline"
-      ],
-      "dot-location": [
-        "error",
-        "object"
-      ]
-    }
   }
 }
