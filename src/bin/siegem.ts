@@ -9,11 +9,8 @@ import _ from 'lodash';
 import yargs from 'yargs';
 
 import Strategy from '../strategy';
-// @ts-expect-error
 import Target from '../target';
-// @ts-expect-error
 import Attack from '../attack';
-// @ts-expect-error
 import ClassicReporter from '../reporters/classic';
 
 let parser = yargs
@@ -105,7 +102,7 @@ let constructTarget = (options: any, i: number) => {
   if (options.data) {
     if (options.data.charAt(0) === '@') {
       let filePath = path.resolve(process.cwd(), options.data.slice(1));
-      target.data(fs.readFileSync(filePath));
+      target.data(fs.readFileSync(filePath, 'utf-8'));
     } else {
       target.data(options.data);
     }
