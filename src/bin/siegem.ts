@@ -1,11 +1,14 @@
 #!/usr/bin/env node
+
+/* eslint-disable no-process-exit */
+
 process.title = process.title.replace(/^node(.*)/, 'siegem$1');
 
 import fs from 'fs';
 import path from 'path';
 import http from 'http';
 import _ from 'lodash';
-// @ts-expect-error
+// @ts-expect-error no types
 import yargs from 'yargs';
 
 import Strategy from '../strategy';
