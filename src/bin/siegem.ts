@@ -11,10 +11,10 @@ import _ from 'lodash';
 // @ts-expect-error no types
 import yargs from 'yargs';
 
-import Strategy from '../strategy';
-import Target from '../target';
-import Attack from '../attack';
-import ClassicReporter from '../reporters/classic';
+import {Strategy} from '../strategy';
+import {Target} from '../target';
+import {Attack} from '../attack';
+import {ClassicReporter} from '../reporters/classic';
 
 let parser = yargs
   .usage('Usage: $0 [options] URL')
@@ -95,13 +95,9 @@ let constructTarget = (options: any, i: number) => {
     options.headers = [options.headers];
   }
 
-  let target = new Target().url(options._[0]);
-  if (options.method) {
-    target.method(options.method);
-  }
-  if (options.headers) {
-    options.headers.forEach(_.unary(target.header));
-  }
+  let target = new Target({url: new URL(options._[0])});
+  if (options.method) target.method(options.method);
+  if (options.headers) options.headers.forEach(_.unary(target.header));
   if (options.data) {
     if (options.data.charAt(0) === '@') {
       let filePath = path.resolve(process.cwd(), options.data.slice(1));
@@ -116,15 +112,9 @@ let constructTarget = (options: any, i: number) => {
 
 let options = parser.argv;
 let strategy = new Strategy({concurrency: options.concurrent});
-if (options.reps) {
-  strategy.repeat(options.reps);
-}
-if (options.time) {
-  strategy.timed(options.time);
-}
-if (typeof options.delay === 'number') {
-  strategy.delay(options.delay);
-}
+if (options.reps) strategy.repeat(options.reps);
+if (options.time) strategy.timed(options.time);
+if (typeof options.delay === 'number') strategy.delay(options.delay);
 
 let reporter = new ClassicReporter({quiet: options.quiet});
 

@@ -8,17 +8,20 @@ interface StrategyOptions {
   delayMax?: number;
 }
 
-class Strategy {
+export class Strategy {
   private _options: StrategyOptions;
 
   constructor(options: StrategyOptions) {
-    this._options = _.assign({
-      concurrency: 10,
-      repetitions: undefined,
-      time: undefined,
-      delayMin: 0,
-      delayMax: 1000,
-    }, options);
+    this._options = _.assign(
+      {
+        concurrency: 10,
+        repetitions: undefined,
+        time: undefined,
+        delayMin: 0,
+        delayMax: 1000,
+      },
+      options
+    );
   }
 
   concurrency(n: number): Strategy {
@@ -33,7 +36,9 @@ class Strategy {
 
   timed(s: string): Strategy {
     let match = s.match(/([0-9]+)(H|M|S)/i);
-    if (!match) { throw new Error('Unexpected timed format: [0-9]+(H|M|S)'); }
+    if (!match) {
+      throw new Error('Unexpected timed format: [0-9]+(H|M|S)');
+    }
     let duration = Number(match[1]);
     let period = match[2].toUpperCase();
 
@@ -52,5 +57,3 @@ class Strategy {
     return this;
   }
 }
-
-export default Strategy;

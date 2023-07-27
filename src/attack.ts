@@ -24,7 +24,7 @@ interface State {
   interval?: NodeJS.Timeout;
 }
 
-class Attack {
+export class Attack {
   private _options: AttackOptions;
   private _state: State;
   private _strategy: any;
@@ -171,5 +171,3 @@ class Attack {
     });
   }
 }
-
-export default Attack;

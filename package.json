@@ -12,6 +12,9 @@
     "test:unit": "echo 'passed'"
   },
   "preferGlobal": true,
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "bin": {
     "siegem": "./dist/cjs/bin/siegem.js"
   },

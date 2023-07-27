@@ -1,13 +1,11 @@
 import http from 'http';
-import url from 'url';
 import _ from 'lodash';
 
 interface RequestOptions {
   method: string;
   headers: {[key: string]: string};
-  url?: string;
+  url: URL;
   data?: string;
-  urlParts?: url.UrlWithStringQuery;
 }
 
 interface ResponseOptions {
@@ -19,24 +17,18 @@ interface ResponseOptions {
   bytes?: string | number;
 }
 
-class Target {
+export class Target {
   private _options: RequestOptions;
 
-  constructor(options: RequestOptions) {
+  constructor(options: Partial<RequestOptions> & Pick<RequestOptions, 'url'>) {
     this._options = _.assign(
       {
         method: 'GET',
         headers: {},
-        url: undefined,
         data: undefined,
-        urlParts: undefined,
       },
       options
     );
-
-    if (this._options.url) {
-      this._options.urlParts = url.parse(this._options.url);
-    }
   }
 
   public method(x: string): Target {
@@ -55,26 +47,25 @@ class Target {
     return this;
   }
 
-  public url(x: string): Target {
-    this._options.url = x;
-    this._options.urlParts = url.parse(x);
+  public url(url: string): Target {
+    this._options.url = new URL(url);
     return this;
   }
 
-  public data(x: string): Target {
-    this._options.data = x;
-    this._options.headers['content-length'] = x.length.toString();
+  public data(payload: string): Target {
+    this._options.data = payload;
+    this._options.headers['content-length'] = payload.length.toString();
     return this;
   }
 
   public request(nodeback: (err: Error | null, response: ResponseOptions) => void): void {
+    const url = this._options.url;
+    if (!url) throw new Error(`Failed to provide a URL for target`);
+
     let startedAt: number, sentAt: number;
-    let req = http.request({
+
+    let req = http.request(url, {
       method: this._options.method.toUpperCase(),
-      protocol: this._options.urlParts!.protocol,
-      port: this._options.urlParts!.port,
-      host: this._options.urlParts!.hostname,
-      path: this._options.urlParts!.path,
       headers: this._options.headers,
     });
 
@@ -122,5 +113,3 @@ class Target {
     req.end();
   }
 }
-
-export default Target;

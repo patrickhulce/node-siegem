@@ -32,7 +32,7 @@ function padTo(s: string, l: number, prepend?: boolean): string {
   return prepend ? padding + s : s + padding;
 }
 
-export default class ClassicReporter {
+export class ClassicReporter {
   private startedAt: number;
   private stoppedAt: number;
   private requests: (Item & {failed: boolean})[];
