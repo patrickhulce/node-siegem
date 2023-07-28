@@ -1,10 +1,13 @@
 import _ from 'lodash';
+import { Strategy, StrategyOptions } from './strategy';
+import { Target } from './target';
+import { ClassicReporter, ConcurrencySnapshot } from './reporters/classic';
 
-interface AttackOptions {
-  isChaotic?: boolean;
-  strategy?: any;
-  targets?: any[];
-  reporters?: any[];
+interface SiegeOptions {
+  isChaotic: boolean;
+  strategy: Strategy;
+  targets: Target[];
+  reporters: ClassicReporter[];
 }
 
 interface ItemOptions {
@@ -20,30 +23,25 @@ interface State {
   lastTarget: number;
   numOutstanding: number;
   numCompleted: number;
-  concurrencySnapshots: any[];
+  concurrencySnapshots: ConcurrencySnapshot[];
   interval?: NodeJS.Timeout;
 }
 
-export class Attack {
-  private _options: AttackOptions;
+export class Siege {
+  private _options: SiegeOptions;
   private _state: State;
-  private _strategy: any;
+  private _strategy: StrategyOptions;
   private _resolve: any;
 
-  constructor(options: AttackOptions) {
-    this._options = _.assign(
+  constructor(options: Partial<SiegeOptions> & Pick<SiegeOptions, 'strategy' | 'targets'>) {
+    this._options =
       {
         isChaotic: false,
-        strategy: undefined,
-        targets: [],
         reporters: [],
-      },
-      options
-    );
+        ...options,
+      }
 
-    if (!this._options.strategy) {
-      throw new Error('A strategy is required');
-    } else if (!_.isArray(this._options.targets) || this._options.targets.length === 0) {
+    if (this._options.targets.length === 0) {
       throw new Error('One or more targets are required');
     }
 
@@ -56,17 +54,20 @@ export class Attack {
       concurrencySnapshots: [],
     };
 
-    this._strategy = _.clone(this._options.strategy._options);
+    this._strategy = this._options.strategy.options;
   }
 
   private isDoneRequesting(): boolean {
+    const startedAt = this._state.startedAt
+    if (startedAt === undefined) throw new Error(`Siege hasn't started yet!`);
+
     let currentNumRequests = this._state.numCompleted + this._state.numOutstanding;
     let repetitionsMet =
-      this._strategy.repetitions &&
-      this._strategy.repetitions * this._strategy.concurrency <= currentNumRequests;
+      this._strategy.repetitions ?
+      this._strategy.repetitions * this._strategy.concurrency <= currentNumRequests : false;
 
-    let currentElapsed = Date.now() - this._state.startedAt!;
-    let timeMet = this._strategy.time && this._strategy.time <= currentElapsed;
+    let currentElapsed = Date.now() - startedAt;
+    let timeMet = this._strategy.time ? this._strategy.time <= currentElapsed : false;
     return !this._state.isRequesting || repetitionsMet || timeMet;
   }
 
@@ -81,7 +82,7 @@ export class Attack {
       response
     );
 
-    this._options.reporters!.forEach((reporter: any) => {
+    this._options.reporters.forEach((reporter: any) => {
       reporter.record(item);
     });
   }
@@ -90,6 +91,7 @@ export class Attack {
     if (this.isDoneRequesting()) {
       return;
     }
+
     let target = this.selectNextTarget();
     let delay = _.random(this._strategy.delayMin, this._strategy.delayMax);
     this._state.numOutstanding += 1;
@@ -120,28 +122,24 @@ export class Attack {
   }
 
   private selectNextTarget(): any {
-    if (this._options.targets!.length === 0) {
+    if (this._options.targets.length === 0) {
       throw new Error('Need at least 1 target!');
     }
+
     if (this._options.isChaotic) {
       return _.sample(this._options.targets);
     } else {
-      let nextIndex = (this._state.lastTarget + 1) % this._options.targets!.length;
+      let nextIndex = (this._state.lastTarget + 1) % this._options.targets.length;
       this._state.lastTarget = nextIndex;
-      return this._options.targets![nextIndex];
+      return this._options.targets[nextIndex];
     }
   }
 
   private periodically(): void {
     this._state.concurrencySnapshots.push({count: this._state.numOutstanding, time: Date.now()});
     if (this.isDoneRequesting() && this._state.numOutstanding === 0) {
-      clearInterval(this._state.interval!);
-      if (this._state.isRequesting) {
-        this._options.reporters!.forEach((r: any) => {
-          r.stop();
-        });
-      }
-
+      if (this._state.interval) clearInterval(this._state.interval);
+      if (this._state.isRequesting) for (const r of this._options.reporters) r.stop();
       this.report();
     }
   }
@@ -154,9 +152,7 @@ export class Attack {
     this._state.isRequesting = true;
     this._state.interval = setInterval(() => this.periodically(), 10);
     _.times(this._strategy.concurrency, () => this.requestAndContinue());
-    this._options.reporters!.forEach((r: any) => {
-      r.start();
-    });
+    for (const r of this._options.reporters) r.start();
 
     return new Promise<void>((resolve) => {
       this._resolve = resolve;
@@ -165,15 +161,11 @@ export class Attack {
 
   public stop(): void {
     this._state.isRequesting = false;
-    this._options.reporters!.forEach((r: any) => {
-      r.stop();
-    });
+    for (const r of this._options.reporters) r.stop();
   }
 
   public report(): void {
-    this._options.reporters!.forEach((reporter: any) => {
-      reporter.report(this._state.concurrencySnapshots);
-    });
+    for (const r of this._options.reporters) r.report(this._state.concurrencySnapshots);
     this._resolve();
   }
 }
