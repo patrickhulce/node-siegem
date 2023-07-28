@@ -4,7 +4,7 @@ import colors from 'colors/safe';
 interface ClassicReporterOptions {
   quiet: boolean;
   longUrl: boolean;
-  stream: NodeJS.WriteStream;
+  stream: Pick<NodeJS.WriteStream, 'write'>;
 }
 
 interface Item {

@@ -28,6 +28,7 @@ export class Attack {
   private _options: AttackOptions;
   private _state: State;
   private _strategy: any;
+  private _resolve: any;
 
   constructor(options: AttackOptions) {
     this._options = _.assign(
@@ -75,7 +76,7 @@ export class Attack {
         failure: err,
         method: target._options.method,
         url: target._options.url,
-        path: target._options.urlParts.path,
+        path: target._options.url.pathname,
       },
       response
     );
@@ -145,7 +146,7 @@ export class Attack {
     }
   }
 
-  public start(): void {
+  public async start(): Promise<void> {
     if (this._state.startedAt) {
       return;
     }
@@ -155,6 +156,10 @@ export class Attack {
     _.times(this._strategy.concurrency, () => this.requestAndContinue());
     this._options.reporters!.forEach((r: any) => {
       r.start();
+    });
+
+    return new Promise<void>((resolve) => {
+      this._resolve = resolve;
     });
   }
 
@@ -169,5 +174,6 @@ export class Attack {
     this._options.reporters!.forEach((reporter: any) => {
       reporter.report(this._state.concurrencySnapshots);
     });
+    this._resolve();
   }
 }
