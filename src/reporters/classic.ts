@@ -9,16 +9,16 @@ interface ClassicReporterOptions {
 
 interface Item {
   failure?: Error;
-  statusCode?: number;
-  httpVersion?: string;
-  totalDuration?: number;
-  bytes?: string | number;
-  method?: string;
-  url?: string;
-  path?: string;
+  statusCode: number;
+  httpVersion: string;
+  totalDuration: number;
+  bytes: string | number;
+  method: string;
+  url: string;
+  path: string;
 }
 
-interface ConcurrencySnapshot {
+export interface ConcurrencySnapshot {
   count: number;
   time: number;
 }
@@ -65,9 +65,8 @@ export class ClassicReporter {
     }
   }
 
-  private write(...args: any[]): void {
-    let s = Array.prototype.slice.call(args).join(' ');
-    this.options.stream.write(s + '\n');
+  private write(...args: string[]): void {
+    this.options.stream.write(args.filter((s) => s).join(' ') + '\n');
   }
 
   private stat(name: string, value: number, measurement?: string): void {
@@ -75,7 +74,7 @@ export class ClassicReporter {
 
     let header = padTo(name + ':', 25);
     let paddedValue = padTo(value.toString(), 10, true);
-    this.write(header, paddedValue, measurement);
+    this.write(header, paddedValue, measurement || '');
   }
 
   start() {
@@ -91,7 +90,7 @@ export class ClassicReporter {
   }
 
   record(item: Item) {
-    let failed = Boolean(item.failure || item.statusCode! >= 400);
+    let failed = Boolean(item.failure || item.statusCode >= 400);
     this.requests.push(_.assign({failed: failed}, item));
     if (this.options.quiet) {
       return;
@@ -101,9 +100,9 @@ export class ClassicReporter {
       this.write('[' + colors.yellow('error') + '] ' + item.failure.message);
     } else {
       let status = 'HTTP/' + item.httpVersion + ' ' + item.statusCode;
-      let duration = padTo(item.totalDuration!.toString(), 7, true) + padTo(' ms:', 10);
-      let bytes = item.bytes!.toString() + ' bytes ==> ';
-      let url = item.method! + ' ' + (this.options.longUrl ? item.url : item.path);
+      let duration = padTo(item.totalDuration.toString(), 7, true) + padTo(' ms:', 10);
+      let bytes = item.bytes.toString() + ' bytes ==> ';
+      let url = item.method + ' ' + (this.options.longUrl ? item.url : item.path);
       this.write(this.getColorized(status + duration + bytes + url, item.statusCode));
     }
   }
@@ -129,13 +128,13 @@ export class ClassicReporter {
     this.stat('Average Concurrency', concurrency);
     this.stat('Successful transactions', successful);
     this.stat('Failed transactions', failed);
-    this.stat('Longest transaction', durationOf(sortedRequests.length - 1)!, 'ms');
+    this.stat('Longest transaction', durationOf(sortedRequests.length - 1), 'ms');
     this.stat(
       '90th percentile',
-      durationOf(Math.round((sortedRequests.length * 9) / 10) - 1)!,
+      durationOf(Math.round((sortedRequests.length * 9) / 10) - 1),
       'ms'
     );
-    this.stat('50th percentile', durationOf(Math.round(sortedRequests.length / 2) - 1)!, 'ms');
-    this.stat('Shortest transaction', durationOf(0)!, 'ms');
+    this.stat('50th percentile', durationOf(Math.round(sortedRequests.length / 2) - 1), 'ms');
+    this.stat('Shortest transaction', durationOf(0), 'ms');
   }
 }

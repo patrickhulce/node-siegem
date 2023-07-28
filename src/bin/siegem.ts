@@ -6,7 +6,7 @@ import yargs_ from 'yargs';
 
 import {Strategy} from '../strategy';
 import {Target} from '../target';
-import {Attack} from '../attack';
+import {Siege} from '../siege';
 import {ClassicReporter} from '../reporters/classic';
 
 // yargs typings are incomplete
@@ -19,7 +19,7 @@ export interface SiegemContext {
   outputStream: Pick<NodeJS.WriteStream, 'write'>;
 }
 
-export async function createAttack(context: SiegemContext): Promise<Attack> {
+export async function createSiege(context: SiegemContext): Promise<Siege> {
   let parser = yargs(context.args)
     .usage('Usage: $0 [options] URL')
     .example('siegem -c 50 -d0 -r 10 http://localhost:3000/ping')
@@ -134,7 +134,7 @@ export async function createAttack(context: SiegemContext): Promise<Attack> {
     throw new ProcessExitError();
   }
 
-  let attack = new Attack({
+  let siege = new Siege({
     isChaotic: options.chaotic,
     strategy: strategy,
     targets: targets,
@@ -143,16 +143,16 @@ export async function createAttack(context: SiegemContext): Promise<Attack> {
 
   http.globalAgent.maxSockets = options.concurrent;
 
-  return attack;
+  return siege;
 }
 
 export async function main(context: SiegemContext) {
   process.title = process.title.replace(/^node(.*)/, 'siegem$1');
 
-  const attack = await createAttack(context);
+  const siege = await createSiege(context);
 
   process.on('SIGINT', function () {
-    attack.stop();
+    siege.stop();
   });
-  await attack.start();
+  await siege.start();
 }

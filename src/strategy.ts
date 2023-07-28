@@ -1,36 +1,32 @@
-import _ from 'lodash';
-
-interface StrategyOptions {
+export interface StrategyOptions {
   concurrency: number;
   repetitions?: number;
   time?: number;
-  delayMin?: number;
-  delayMax?: number;
+  delayMin: number;
+  delayMax: number;
 }
 
 export class Strategy {
-  private _options: StrategyOptions;
+  public options: StrategyOptions;
 
-  constructor(options: StrategyOptions) {
-    this._options = _.assign(
-      {
-        concurrency: 10,
-        repetitions: undefined,
-        time: undefined,
-        delayMin: 0,
-        delayMax: 1000,
-      },
-      options
-    );
+  constructor(options?: Partial<StrategyOptions>) {
+    this.options = {
+      concurrency: 10,
+      repetitions: undefined,
+      time: undefined,
+      delayMin: 0,
+      delayMax: 1000,
+      ...options,
+    };
   }
 
   concurrency(n: number): Strategy {
-    this._options.concurrency = n;
+    this.options.concurrency = n;
     return this;
   }
 
   repeat(n: number): Strategy {
-    this._options.repetitions = n;
+    this.options.repetitions = n;
     return this;
   }
 
@@ -48,12 +44,12 @@ export class Strategy {
       duration *= 60;
     }
 
-    this._options.time = duration * 1000;
+    this.options.time = duration * 1000;
     return this;
   }
 
   delay(s: number): Strategy {
-    this._options.delayMax = s;
+    this.options.delayMax = s;
     return this;
   }
 }

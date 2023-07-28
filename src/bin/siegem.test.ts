@@ -31,7 +31,7 @@ describe(main, () => {
     const lines = outputStream.write.mock.calls
       .map((args) => args[0])
       .join('')
-      .replace(/(:\s+)\d+\.\d+/g, '$1XXX')
+      .replace(/(:\s+)\d+\.\d+/g, '$1XX')
       .replace(/\d+ (ms|s|trans\/sec)/g, 'XX $1')
       .replace(/ +/g, ' ')
       .split('\n')
@@ -49,10 +49,10 @@ describe(main, () => {
       Lifting the server siege...
       Transactions: 100
       Availability: 100 %
-      Elapsed time: XXX s
-      Response time: XXX ms
-      Transaction rate: XXX trans/sec
-      Average Concurrency: XXX
+      Elapsed time: XX s
+      Response time: XX ms
+      Transaction rate: XX trans/sec
+      Average Concurrency: XX
       Successful transactions: 100
       Failed transactions: 0
       Longest transaction: XX ms

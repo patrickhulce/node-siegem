@@ -21,14 +21,12 @@ export class Target {
   private _options: RequestOptions;
 
   constructor(options: Partial<RequestOptions> & Pick<RequestOptions, 'url'>) {
-    this._options = _.assign(
-      {
-        method: 'GET',
-        headers: {},
-        data: undefined,
-      },
-      options
-    );
+    this._options = {
+      method: 'GET',
+      headers: {},
+      data: undefined,
+      ...options,
+    };
   }
 
   public method(x: string): Target {
@@ -36,14 +34,14 @@ export class Target {
     return this;
   }
 
-  public header(n: string, v?: string): Target {
-    if (typeof v === 'undefined') {
-      let parts = n.split(':');
-      n = parts[0];
-      v = parts.slice(1).join(':').trim();
+  public header(name: string, value?: string): Target {
+    if (typeof value === 'undefined') {
+      let parts = name.split(':');
+      name = parts[0];
+      value = parts.slice(1).join(':').trim();
     }
 
-    this._options.headers[n] = v!;
+    this._options.headers[name] = value;
     return this;
   }
 
