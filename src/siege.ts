@@ -1,20 +1,13 @@
 import _ from 'lodash';
-import { Strategy, StrategyOptions } from './strategy';
-import { Target } from './target';
-import { ClassicReporter, ConcurrencySnapshot } from './reporters/classic';
+import {Strategy, StrategyOptions} from './strategy';
+import {ResponseData, Target} from './target';
+import {ClassicReporter, ConcurrencySnapshot} from './reporters/classic';
 
 interface SiegeOptions {
   isChaotic: boolean;
   strategy: Strategy;
   targets: Target[];
   reporters: ClassicReporter[];
-}
-
-interface ItemOptions {
-  failure?: any;
-  method?: string;
-  url?: string;
-  path?: string;
 }
 
 interface State {
@@ -31,15 +24,14 @@ export class Siege {
   private _options: SiegeOptions;
   private _state: State;
   private _strategy: StrategyOptions;
-  private _resolve: any;
+  private _resolve: () => void;
 
   constructor(options: Partial<SiegeOptions> & Pick<SiegeOptions, 'strategy' | 'targets'>) {
-    this._options =
-      {
-        isChaotic: false,
-        reporters: [],
-        ...options,
-      }
+    this._options = {
+      isChaotic: false,
+      reporters: [],
+      ...options,
+    };
 
     if (this._options.targets.length === 0) {
       throw new Error('One or more targets are required');
@@ -55,36 +47,37 @@ export class Siege {
     };
 
     this._strategy = this._options.strategy.options;
+    this._resolve = () => {};
   }
 
   private isDoneRequesting(): boolean {
-    const startedAt = this._state.startedAt
+    const startedAt = this._state.startedAt;
     if (startedAt === undefined) throw new Error(`Siege hasn't started yet!`);
 
     let currentNumRequests = this._state.numCompleted + this._state.numOutstanding;
-    let repetitionsMet =
-      this._strategy.repetitions ?
-      this._strategy.repetitions * this._strategy.concurrency <= currentNumRequests : false;
+    let repetitionsMet = this._strategy.repetitions
+      ? this._strategy.repetitions * this._strategy.concurrency <= currentNumRequests
+      : false;
 
     let currentElapsed = Date.now() - startedAt;
     let timeMet = this._strategy.time ? this._strategy.time <= currentElapsed : false;
     return !this._state.isRequesting || repetitionsMet || timeMet;
   }
 
-  private recordRequest(err: any, response: any, target: any): void {
-    let item: ItemOptions = _.assign(
-      {
-        failure: err,
-        method: target._options.method,
-        url: target._options.url,
-        path: target._options.url.pathname,
-      },
-      response
-    );
-
-    this._options.reporters.forEach((reporter: any) => {
-      reporter.record(item);
-    });
+  private recordRequest(
+    err: Error | null | undefined,
+    response: ResponseData,
+    target: Target
+  ): void {
+    for (const r of this._options.reporters) {
+      r.record({
+        failure: err || undefined,
+        method: target.options.method,
+        url: target.options.url.href,
+        path: target.options.url.pathname,
+        ...response,
+      });
+    }
   }
 
   private requestAndContinue(): void {
@@ -102,7 +95,7 @@ export class Siege {
         return;
       }
 
-      target.request((err: any, response: any) => {
+      target.request((err, response) => {
         this._state.numOutstanding -= 1;
         if (!this._state.isRequesting) {
           return;
@@ -121,13 +114,15 @@ export class Siege {
     }
   }
 
-  private selectNextTarget(): any {
+  private selectNextTarget(): Target {
     if (this._options.targets.length === 0) {
       throw new Error('Need at least 1 target!');
     }
 
     if (this._options.isChaotic) {
-      return _.sample(this._options.targets);
+      const target = _.sample(this._options.targets);
+      if (!target) throw new Error('No target found!');
+      return target;
     } else {
       let nextIndex = (this._state.lastTarget + 1) % this._options.targets.length;
       this._state.lastTarget = nextIndex;

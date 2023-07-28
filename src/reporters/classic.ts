@@ -9,10 +9,10 @@ interface ClassicReporterOptions {
 
 interface Item {
   failure?: Error;
-  statusCode: number;
-  httpVersion: string;
+  statusCode?: number;
+  httpVersion?: string;
+  bytes?: string | number;
   totalDuration: number;
-  bytes: string | number;
   method: string;
   url: string;
   path: string;
@@ -32,21 +32,23 @@ function padTo(s: string, l: number, prepend?: boolean): string {
   return prepend ? padding + s : s + padding;
 }
 
+function isFailed(item: Item): boolean {
+  return item.failure !== undefined || item.statusCode === undefined || item.statusCode >= 400;
+}
+
 export class ClassicReporter {
   private startedAt: number;
   private stoppedAt: number;
-  private requests: (Item & {failed: boolean})[];
+  private requests: Item[];
   private options: ClassicReporterOptions;
 
   constructor(options: Partial<ClassicReporterOptions>) {
-    this.options = _.assign(
-      {
-        quiet: false,
-        longUrl: false,
-        stream: process.stdout,
-      },
-      options
-    );
+    this.options = {
+      quiet: false,
+      longUrl: false,
+      stream: process.stdout,
+      ...options,
+    };
 
     this.startedAt = 0;
     this.stoppedAt = 0;
@@ -90,8 +92,7 @@ export class ClassicReporter {
   }
 
   record(item: Item) {
-    let failed = Boolean(item.failure || item.statusCode >= 400);
-    this.requests.push(_.assign({failed: failed}, item));
+    this.requests.push(item);
     if (this.options.quiet) {
       return;
     }
@@ -101,7 +102,7 @@ export class ClassicReporter {
     } else {
       let status = 'HTTP/' + item.httpVersion + ' ' + item.statusCode;
       let duration = padTo(item.totalDuration.toString(), 7, true) + padTo(' ms:', 10);
-      let bytes = item.bytes.toString() + ' bytes ==> ';
+      let bytes = item.bytes ? item.bytes.toString() + ' bytes ==> ' : '';
       let url = item.method + ' ' + (this.options.longUrl ? item.url : item.path);
       this.write(this.getColorized(status + duration + bytes + url, item.statusCode));
     }
@@ -109,8 +110,8 @@ export class ClassicReporter {
 
   report(concurrencySnapshots: ConcurrencySnapshot[]) {
     let total = this.requests.length;
-    let successful = _.reject(this.requests, 'failed').length;
-    let failed = total - successful;
+    let failed = this.requests.filter(isFailed).length;
+    let successful = total - failed;
     let concurrency = _.sumBy(concurrencySnapshots, 'count') / concurrencySnapshots.length;
 
     let sortedRequests = _.sortBy(this.requests, 'totalDuration');
@@ -118,6 +119,7 @@ export class ClassicReporter {
     let responseTime = _.sumBy(this.requests, 'totalDuration') / total;
 
     let durationOf = (i: number) => _.get(sortedRequests, i + '.totalDuration');
+    let pX = (x: number) => durationOf(Math.round((sortedRequests.length * x) / 100) - 1);
 
     this.write('\n');
     this.stat('Transactions', total);
@@ -129,12 +131,8 @@ export class ClassicReporter {
     this.stat('Successful transactions', successful);
     this.stat('Failed transactions', failed);
     this.stat('Longest transaction', durationOf(sortedRequests.length - 1), 'ms');
-    this.stat(
-      '90th percentile',
-      durationOf(Math.round((sortedRequests.length * 9) / 10) - 1),
-      'ms'
-    );
-    this.stat('50th percentile', durationOf(Math.round(sortedRequests.length / 2) - 1), 'ms');
+    this.stat('90th percentile', pX(90), 'ms');
+    this.stat('50th percentile', pX(50), 'ms');
     this.stat('Shortest transaction', durationOf(0), 'ms');
   }
 }
