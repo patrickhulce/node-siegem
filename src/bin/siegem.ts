@@ -14,6 +14,20 @@ const yargs = yargs_ as any;
 
 export class ProcessExitError extends Error {}
 
+interface YargsParsedOutput {
+  _: string[];
+  concurrent: number;
+  reps?: number;
+  time?: string;
+  delay: number;
+  quiet?: boolean;
+  file?: string;
+  chaotic?: boolean;
+  method: string;
+  headers?: string[] | string;
+  data?: string;
+}
+
 export interface SiegemContext {
   args: string[];
   outputStream: Pick<NodeJS.WriteStream, 'write'>;
@@ -90,18 +104,20 @@ export async function createSiege(context: SiegemContext): Promise<Siege> {
       },
     });
 
-  let constructTarget = (options: any, i: number) => {
+  let constructTarget = (options: YargsParsedOutput, i: number) => {
     let url = options._[0];
     if (!url) {
       throw new Error('Malformed request options on line ' + (i + 1) + ': url required');
     }
-    if (options.headers && !_.isArray(options.headers)) {
-      options.headers = [options.headers];
-    }
+    const headers = options.headers
+      ? _.isArray(options.headers)
+        ? options.headers
+        : [options.headers]
+      : undefined;
 
     let target = new Target({url: new URL(options._[0])});
     if (options.method) target.method(options.method);
-    if (options.headers) options.headers.forEach(_.unary(target.header));
+    if (headers) headers.forEach((header) => target.header(header));
     if (options.data) {
       if (options.data.charAt(0) === '@') {
         let filePath = path.resolve(process.cwd(), options.data.slice(1));
