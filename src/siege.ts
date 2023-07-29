@@ -25,6 +25,7 @@ export class Siege {
   private _state: State;
   private _strategy: StrategyOptions;
   private _resolve: () => void;
+  private _targetsById: Record<string, Target>;
 
   constructor(options: Partial<SiegeOptions> & Pick<SiegeOptions, 'strategy' | 'targets'>) {
     this._options = {
@@ -47,10 +48,11 @@ export class Siege {
     };
 
     this._strategy = this._options.strategy.options;
+    this._targetsById = _.keyBy(this._options.targets, (target) => target.options.id);
     this._resolve = () => {};
   }
 
-  private isDoneRequesting(): boolean {
+  private _isDone(): boolean {
     const startedAt = this._state.startedAt;
     if (startedAt === undefined) throw new Error(`Siege hasn't started yet!`);
 
@@ -64,7 +66,7 @@ export class Siege {
     return !this._state.isRequesting || repetitionsMet || timeMet;
   }
 
-  private recordRequest(
+  private _recordRequest(
     err: Error | null | undefined,
     response: ResponseData,
     target: Target
@@ -73,66 +75,81 @@ export class Siege {
       r.record({
         failure: err || undefined,
         method: target.options.method,
-        url: target.options.url.href,
-        path: target.options.url.pathname,
         ...response,
+        url: response.url.href,
+        path: response.url.pathname,
       });
     }
   }
 
-  private requestAndContinue(): void {
-    if (this.isDoneRequesting()) {
+  private _sendRequest(): void {
+    if (this._isDone()) {
       return;
     }
 
-    let target = this.selectNextTarget();
+    let target = this._getNextTarget();
     let delay = _.random(this._strategy.delayMin, this._strategy.delayMax);
     this._state.numOutstanding += 1;
 
-    let go = () => {
+    let send = () => {
       if (!this._state.isRequesting) {
         this._state.numOutstanding -= 1;
         return;
       }
 
-      target.request((err, response) => {
+      target.request(this._targetsById, (err, response) => {
         this._state.numOutstanding -= 1;
         if (!this._state.isRequesting) {
           return;
         }
 
         this._state.numCompleted += 1;
-        this.recordRequest(err, response, target);
-        this.requestAndContinue();
+        this._recordRequest(err, response, target);
+        this._sendRequest();
       });
     };
 
     if (delay) {
-      setTimeout(go, delay);
+      setTimeout(send, delay);
     } else {
-      go();
+      send();
     }
   }
 
-  private selectNextTarget(): Target {
+  private _getNextTarget(): Target {
     if (this._options.targets.length === 0) {
       throw new Error('Need at least 1 target!');
     }
 
+    const targetIdsWithResponse = this._options.targets
+      .filter((target) => target.lastResponse?.body)
+      .map((target) => target.options.id);
+
+    const availableTargets = this._options.targets.filter((target) => {
+      const urlDependencies = Target.findTargetIdsInData(target.options.urlTemplate);
+      const dataDependencies = Target.findTargetIdsInData(target.options.dataTemplate);
+      const dependencies = _.uniq([...urlDependencies, ...dataDependencies]);
+      return dependencies.every((dependency) => targetIdsWithResponse.includes(dependency));
+    });
+
     if (this._options.isChaotic) {
-      const target = _.sample(this._options.targets);
+      const target = _.sample(availableTargets);
       if (!target) throw new Error('No target found!');
       return target;
     } else {
-      let nextIndex = (this._state.lastTarget + 1) % this._options.targets.length;
+      let nextIndex = (this._state.lastTarget + 1) % availableTargets.length;
       this._state.lastTarget = nextIndex;
-      return this._options.targets[nextIndex];
+      return availableTargets[nextIndex];
     }
   }
 
-  private periodically(): void {
-    this._state.concurrencySnapshots.push({count: this._state.numOutstanding, time: Date.now()});
-    if (this.isDoneRequesting() && this._state.numOutstanding === 0) {
+  private _periodically(): void {
+    this._state.concurrencySnapshots.push({
+      count: this._state.numOutstanding,
+      timestamp: Date.now(),
+    });
+
+    if (this._isDone() && this._state.numOutstanding === 0) {
       if (this._state.interval) clearInterval(this._state.interval);
       if (this._state.isRequesting) for (const r of this._options.reporters) r.stop();
       this.report();
@@ -143,10 +160,11 @@ export class Siege {
     if (this._state.startedAt) {
       return;
     }
+
     this._state.startedAt = Date.now();
     this._state.isRequesting = true;
-    this._state.interval = setInterval(() => this.periodically(), 10);
-    _.times(this._strategy.concurrency, () => this.requestAndContinue());
+    this._state.interval = setInterval(() => this._periodically(), 10);
+    _.times(this._strategy.concurrency, () => this._sendRequest());
     for (const r of this._options.reporters) r.start();
 
     return new Promise<void>((resolve) => {

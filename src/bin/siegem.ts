@@ -104,10 +104,10 @@ export async function createSiege(context: SiegemContext): Promise<Siege> {
       },
     });
 
-  let constructTarget = (options: YargsParsedOutput, i: number) => {
+  let constructTarget = (options: YargsParsedOutput, id: string) => {
     let url = options._[0];
     if (!url) {
-      throw new Error('Malformed request options on line ' + (i + 1) + ': url required');
+      throw new Error(`Malformed request options on target "${id}": url required`);
     }
     const headers = options.headers
       ? _.isArray(options.headers)
@@ -115,7 +115,7 @@ export async function createSiege(context: SiegemContext): Promise<Siege> {
         : [options.headers]
       : undefined;
 
-    let target = new Target({url: new URL(options._[0])});
+    let target = new Target({id, urlTemplate: options._[0]});
     if (options.method) target.method(options.method);
     if (headers) headers.forEach((header) => target.header(header));
     if (options.data) {
@@ -138,13 +138,22 @@ export async function createSiege(context: SiegemContext): Promise<Siege> {
 
   let reporter = new ClassicReporter({quiet: options.quiet, stream: context.outputStream});
 
-  let targets: any[] = [];
+  let targets: Target[] = [];
   if (options.file) {
     let file = fs.readFileSync(path.resolve(process.cwd(), options.file), 'utf8');
-    let lines = file.split('\n').filter(Boolean);
-    targets = lines.map((line, i) => constructTarget(parser.parse(line), i));
+    let lines = file
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    targets = lines.map((line, i) => {
+      const parts = line.split(/^\$([^ .]+) /).filter(Boolean);
+      const identifier = parts.length === 2 ? parts[0] : `#${i}`;
+      const lineOpts = parts.length === 2 ? parts[1] : line;
+      return constructTarget(parser.parse(lineOpts), identifier);
+    });
   } else if (options._.length > 0) {
-    targets = [constructTarget(options, 0)];
+    targets = [constructTarget(options, '#0')];
   } else {
     parser.showHelp();
     throw new ProcessExitError();

@@ -20,7 +20,7 @@ interface Item {
 
 export interface ConcurrencySnapshot {
   count: number;
-  time: number;
+  timestamp: number;
 }
 
 function padTo(s: string, l: number, prepend?: boolean): string {
