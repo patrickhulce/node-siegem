@@ -1,4 +1,5 @@
 import http from 'http';
+import https from 'https';
 import _ from 'lodash';
 
 export interface TargetOptions {
@@ -126,7 +127,8 @@ export class Target {
     const url = this._getURL(targetsById);
     let startedAt: number, sentAt: number;
 
-    let req = http.request(url, {
+    const httpModule = url.protocol === 'https:' ? https : http;
+    let req = httpModule.request(url, {
       method: this.options.method.toUpperCase(),
       headers: this.options.headers,
     });

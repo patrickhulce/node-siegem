@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import http from 'http';
+import https from 'https';
 import _ from 'lodash';
 import yargs_ from 'yargs';
 
@@ -167,6 +168,7 @@ export async function createSiege(context: SiegemContext): Promise<Siege> {
   });
 
   http.globalAgent.maxSockets = options.concurrent;
+  https.globalAgent.maxSockets = options.concurrent;
 
   return siege;
 }
