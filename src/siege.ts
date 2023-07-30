@@ -82,7 +82,7 @@ export class Siege {
     }
   }
 
-  private _sendRequest(): void {
+  private _sendRequestAndRecurse(): void {
     if (this._isDone()) {
       return;
     }
@@ -105,7 +105,7 @@ export class Siege {
 
         this._state.numCompleted += 1;
         this._recordRequest(err, response, target);
-        this._sendRequest();
+        this._sendRequestAndRecurse();
       });
     };
 
@@ -125,12 +125,14 @@ export class Siege {
       .filter((target) => target.lastResponse?.body)
       .map((target) => target.options.id);
 
-    const availableTargets = this._options.targets.filter((target) => {
-      const urlDependencies = Target.findTargetIdsInData(target.options.urlTemplate);
-      const dataDependencies = Target.findTargetIdsInData(target.options.dataTemplate);
-      const dependencies = _.uniq([...urlDependencies, ...dataDependencies]);
-      return dependencies.every((dependency) => targetIdsWithResponse.includes(dependency));
-    });
+    const availableTargets = this._options.targets
+      .filter((target) => {
+        const urlDependencies = Target.findTargetIdsInData(target.options.urlTemplate);
+        const dataDependencies = Target.findTargetIdsInData(target.options.dataTemplate);
+        const dependencies = _.uniq([...urlDependencies, ...dataDependencies]);
+        return dependencies.every((dependency) => targetIdsWithResponse.includes(dependency));
+      })
+      .flatMap((target) => Array.from({length: target.options.weight}, () => target));
 
     if (this._options.isChaotic) {
       const target = _.sample(availableTargets);
@@ -164,7 +166,7 @@ export class Siege {
     this._state.startedAt = Date.now();
     this._state.isRequesting = true;
     this._state.interval = setInterval(() => this._periodically(), 10);
-    _.times(this._strategy.concurrency, () => this._sendRequest());
+    _.times(this._strategy.concurrency, () => this._sendRequestAndRecurse());
     for (const r of this._options.reporters) r.start();
 
     return new Promise<void>((resolve) => {

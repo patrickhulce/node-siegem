@@ -5,6 +5,7 @@ import _ from 'lodash';
 export interface TargetOptions {
   id: string;
   method: string;
+  weight: number;
   headers: {[key: string]: string};
   urlTemplate: string;
   dataTemplate?: string;
@@ -31,6 +32,7 @@ export class Target {
     this.options = {
       method: 'GET',
       headers: {},
+      weight: 1,
       dataTemplate: undefined,
       ...options,
     };
@@ -38,6 +40,12 @@ export class Target {
 
   public method(x: string): Target {
     this.options.method = x;
+    return this;
+  }
+
+  public weight(x: number): Target {
+    if (!Number.isInteger(x)) throw new Error(`Weight ${x} is not an integer`);
+    this.options.weight = x;
     return this;
   }
 

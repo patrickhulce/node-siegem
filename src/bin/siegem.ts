@@ -26,6 +26,7 @@ interface YargsParsedOutput {
   chaotic?: boolean;
   method: string;
   headers?: string[] | string;
+  weight?: number;
   data?: string;
 }
 
@@ -85,6 +86,11 @@ export async function createSiege(context: SiegemContext): Promise<Siege> {
         describe: 'Process lines in file in random order',
         type: 'boolean',
       },
+      weight: {
+        describe: 'The weight of this target in the siege',
+        requiresArg: true,
+        type: 'number',
+      },
       method: {
         alias: 'X',
         describe: 'Method to use for the request',
@@ -122,6 +128,7 @@ export async function createSiege(context: SiegemContext): Promise<Siege> {
 
     let target = new Target({id, urlTemplate: options._[0]});
     if (options.method) target.method(options.method);
+    if (options.weight) target.weight(options.weight);
     if (headers) headers.forEach((header) => target.header(header));
     if (options.data) {
       if (options.data.charAt(0) === '@') {
