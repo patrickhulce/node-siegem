@@ -3,7 +3,7 @@
   "description": "SIEGE iMproved",
   "version": "0.0.0",
   "scripts": {
-    "start": "node ./dist/cjs/bin/siegem.js",
+    "start": "node ./dist/cjs/bin/bin.js",
     "build": "tsc",
     "build:watch": "tsc --watch",
     "test": "pnpm test:lint && pnpm test:typecheck && pnpm test:unit",
