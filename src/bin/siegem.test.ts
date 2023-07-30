@@ -50,7 +50,7 @@ describe(main, () => {
           method: 'POST',
           response: {
             deliveryType: ResponseDeliveryType.COMPLETE,
-            fetchBody: async (req) => ({id: req.pathParams.id}),
+            fetchBody: async (req) => (req.params.id == '123' ? {id: 456} : {sub: {id: '789'}}),
           },
         },
       ],
@@ -94,13 +94,19 @@ describe(main, () => {
   it('sieges with dependencies', async () => {
     const {filepath} = createTemporaryFile(`
       $get ${server.baseURL}/delay
-      -X POST '${server.baseURL}/create/%%get/"id":(\\d+)%%'
+      $post1 -X POST '${server.baseURL}/create/%%get/"id":(\\d+)%%'
+      $post2 -X POST '${server.baseURL}/create/%%post1@id%%'
+      $post3 -X POST '${server.baseURL}/create/%%post2@sub.id%%'
     `);
 
-    await main({args: [`-f`, filepath, '-d0', '-r10', '-c3'], outputStream});
+    await main({args: [`-f`, filepath, '-d0', '-r10', '-c4'], outputStream});
 
     const output = cleanOutputLines().join('\n');
     expect(output).toContain('GET /delay');
     expect(output).toContain('POST /create/123');
+    expect(output).toContain('POST /create/456');
+    expect(output).toContain('POST /create/789');
+    expect(output).toContain('Transactions: 40');
+    expect(output).toContain('Successful transactions: 40');
   });
 });

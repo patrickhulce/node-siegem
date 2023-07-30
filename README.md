@@ -70,8 +70,13 @@ $ siegem --file my_urls.txt
 
 #### `my_urls.txt`
 
+1. Label a URL's response by prefixing the line with a variable name beginning with $. (`$msg` in the example below)
+2. In a later line, reference a previous response using `%%<name><specifier>%%`.
+   1. `@<property>` - Specify a JSON property path.
+   2. `/<regex>` - Specify a regex to extract.
+
 ```
 $msg -X POST --data '{"message": "foo"}' http://localhost:3000/messages
--X GET 'http://localhost:3000/messages/%%msg/"id":"([^"]+)"%%'
--X PUT --data '{"message": "%%msg/"message":"([^"]+)"%%"}' 'http://localhost:3000/messages/%%msg/"id":"([^"]+)"%%'
+-X GET 'http://localhost:3000/messages/%%msg@id%%'
+-X PUT --data '{"message": "%%msg/.*%%"}' 'http://localhost:3000/messages/%%msg@id%%'
 ```

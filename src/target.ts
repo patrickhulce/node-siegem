@@ -1,4 +1,5 @@
 import http from 'http';
+import _ from 'lodash';
 
 export interface TargetOptions {
   id: string;
@@ -19,7 +20,7 @@ export interface ResponseData {
   body?: Buffer[];
 }
 
-const TARGET_REFERENCE_REGEX = /%%([^./]+)\/([^%]+)%%/;
+const TARGET_REFERENCE_REGEX = /%%([^./]+)(\/|@)([^%]+)%%/;
 
 export class Target {
   public options: TargetOptions;
@@ -70,28 +71,37 @@ export class Target {
 
   public static prepareData(id: string, data: string, targets: Record<string, Target>): string {
     const replacements = data.matchAll(new RegExp(TARGET_REFERENCE_REGEX.source, 'g'));
-    console.log(data);
 
     for (const replacement of replacements) {
       const match = replacement[0].match(TARGET_REFERENCE_REGEX);
       if (!match) throw new Error(`Impossible, it was just a match`);
 
-      const [, targetId, subregex] = match;
+      const [, targetId, joiner, subregexOrProperty] = match;
       const targetBody = targets[targetId].lastResponse?.body;
       if (!targetBody) {
         throw new Error(`Failed to find target body "${targetId}" for target "${id}"`);
       }
 
       const bodyAsString = targetBody.map((buffer) => buffer.toString()).join('');
-      const submatch = bodyAsString.match(new RegExp(subregex));
-      if (!submatch) {
-        throw new Error(
-          `Failed to find match for subregex "${subregex}" in target body "${targetId}" for target "${id}"`
-        );
-      }
 
-      const value = submatch.length === 2 ? submatch[1] : submatch[0];
-      data = data.replace(replacement[0], value);
+      if (joiner === '@') {
+        const keys = subregexOrProperty.split('.');
+        const json = JSON.parse(bodyAsString);
+        const value = _.get(json, keys);
+        data = data.replace(replacement[0], value);
+      } else if (joiner === '/') {
+        const subregex = new RegExp(subregexOrProperty);
+
+        const submatch = bodyAsString.match(subregex);
+        if (!submatch) {
+          throw new Error(
+            `Failed to find match for "${subregexOrProperty}" in target body "${targetId}" for target "${id}"`
+          );
+        }
+
+        const value = submatch.length === 2 ? submatch[1] : submatch[0];
+        data = data.replace(replacement[0], value);
+      }
     }
 
     return data;
