@@ -77,7 +77,7 @@ export class Target {
       if (!match) throw new Error(`Impossible, it was just a match`);
 
       const [, targetId, joiner, subregexOrProperty] = match;
-      const targetBody = targets[targetId].lastResponse?.body;
+      const targetBody = targets[targetId]?.lastResponse?.body;
       if (!targetBody) {
         throw new Error(`Failed to find target body "${targetId}" for target "${id}"`);
       }
