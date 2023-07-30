@@ -92,14 +92,14 @@ describe(main, () => {
       Transactions: 100
       Availability: 100 %
       Elapsed time: XX s
-      Response time: XX ms
+      Average TTFB: XX ms
+      90th percentile (TTFB): XX ms
+      50th percentile (TTFB): XX ms
       Transaction rate: XX trans/sec
       Average Concurrency: XX
       Successful transactions: 100
       Failed transactions: 0
       Longest transaction: XX ms
-      90th percentile: XX ms
-      50th percentile: XX ms
       Shortest transaction: XX ms"
     `);
   });

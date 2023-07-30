@@ -14,7 +14,8 @@ export interface TargetOptions {
 export interface ResponseData {
   url: URL;
   requestDuration: number;
-  responseDuration: number;
+  firstByteDuration?: number;
+  downloadDuration?: number;
   totalDuration: number;
   statusCode?: number;
   httpVersion?: string;
@@ -133,7 +134,7 @@ export class Target {
     nodeback: (err: Error | null, response: ResponseData) => void
   ): void {
     const url = this._getURL(targetsById);
-    let startedAt: number, sentAt: number;
+    let startedAt: number, sentAt: number, firstByteAt: number;
 
     const httpModule = url.protocol === 'https:' ? https : http;
     let req = httpModule.request(url, {
@@ -149,7 +150,8 @@ export class Target {
       const responseData: ResponseData = {
         url,
         requestDuration: sentAt - startedAt,
-        responseDuration: now - sentAt,
+        firstByteDuration: firstByteAt ? firstByteAt - sentAt : undefined,
+        downloadDuration: firstByteAt ? now - firstByteAt : undefined,
         totalDuration: now - startedAt,
         ...response,
       };
@@ -161,6 +163,7 @@ export class Target {
     req.on('response', (res) => {
       let byteLength = 0;
       let body: Buffer[] = [];
+      firstByteAt = Date.now();
       res.on('data', (chunk: Buffer) => {
         byteLength += chunk.length;
         body.push(chunk);

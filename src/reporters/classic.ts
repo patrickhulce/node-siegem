@@ -12,6 +12,7 @@ interface Item {
   statusCode?: number;
   httpVersion?: string;
   bytes?: string | number;
+  firstByteDuration?: number;
   totalDuration: number;
   method: string;
   url: string;
@@ -97,11 +98,12 @@ export class ClassicReporter {
       return;
     }
 
+    const durationMs = item.firstByteDuration ?? item.totalDuration;
+    let duration = padTo(durationMs.toString(), 7, true) + padTo(' ms:', 10);
     if (item.failure) {
-      this.write('[' + colors.yellow('error') + '] ' + item.failure.message);
+      this.write(colors.red(`TCP/IP ERROR ${duration}${item.failure.message}}`));
     } else {
       let status = 'HTTP/' + item.httpVersion + ' ' + item.statusCode;
-      let duration = padTo(item.totalDuration.toString(), 7, true) + padTo(' ms:', 10);
       let bytes = item.bytes ? item.bytes.toString() + ' bytes ==> ' : '';
       let url = item.method + ' ' + (this.options.longUrl ? item.url : item.path);
       this.write(this.getColorized(status + duration + bytes + url, item.statusCode));
@@ -114,25 +116,35 @@ export class ClassicReporter {
     let successful = total - failed;
     let concurrency = _.sumBy(concurrencySnapshots, 'count') / concurrencySnapshots.length;
 
-    let sortedRequests = _.sortBy(this.requests, 'totalDuration');
+    let requestsSortedByTotal = _.sortBy(this.requests, (r) => r.totalDuration);
+    let requestsSortedByFirstByte = _.sortBy(
+      this.requests.filter((r) => Number.isFinite(r.firstByteDuration)),
+      (r) => r.firstByteDuration
+    );
     let elapsedTime = (this.stoppedAt - this.startedAt) / 1000;
-    let responseTime = _.sumBy(this.requests, 'totalDuration') / total;
+    let responseTime =
+      _.sumBy(requestsSortedByFirstByte, (r) => r.firstByteDuration ?? Infinity) /
+      requestsSortedByFirstByte.length;
 
-    let durationOf = (i: number) => _.get(sortedRequests, i + '.totalDuration');
-    let pX = (x: number) => durationOf(Math.round((sortedRequests.length * x) / 100) - 1);
+    let durationOf = (i: number, arr: Item[] = requestsSortedByTotal) => arr[i].totalDuration;
+    let pXFirstByte = (x: number) =>
+      durationOf(
+        Math.round((requestsSortedByFirstByte.length * x) / 100) - 1,
+        requestsSortedByFirstByte
+      );
 
     this.write('\n');
     this.stat('Transactions', total);
     this.stat('Availability', (successful / total) * 100, '%');
     this.stat('Elapsed time', elapsedTime, 's');
-    this.stat('Response time', responseTime, 'ms');
+    this.stat('Average TTFB', responseTime, 'ms');
+    this.stat('90th percentile (TTFB)', pXFirstByte(90), 'ms');
+    this.stat('50th percentile (TTFB)', pXFirstByte(50), 'ms');
     this.stat('Transaction rate', total / elapsedTime, 'trans/sec');
     this.stat('Average Concurrency', concurrency);
     this.stat('Successful transactions', successful);
     this.stat('Failed transactions', failed);
-    this.stat('Longest transaction', durationOf(sortedRequests.length - 1), 'ms');
-    this.stat('90th percentile', pX(90), 'ms');
-    this.stat('50th percentile', pX(50), 'ms');
+    this.stat('Longest transaction', durationOf(requestsSortedByTotal.length - 1), 'ms');
     this.stat('Shortest transaction', durationOf(0), 'ms');
   }
 }
