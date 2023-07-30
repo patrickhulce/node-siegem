@@ -53,6 +53,19 @@ describe(main, () => {
             fetchBody: async (req) => (req.params.id == '123' ? {id: 456} : {sub: {id: '789'}}),
           },
         },
+        {
+          path: '/headers',
+          method: 'GET',
+          response: {
+            deliveryType: ResponseDeliveryType.COMPLETE,
+            fetchBody: async (req) => {
+              if (!req.headers['x-custom-header-1']) throw new Error('Missing header');
+              if (!req.headers['x-custom-header-2']) throw new Error('Missing header');
+
+              return 'OK';
+            },
+          },
+        },
       ],
     });
   });
@@ -108,5 +121,21 @@ describe(main, () => {
     expect(output).toContain('POST /create/789');
     expect(output).toContain('Transactions: 40');
     expect(output).toContain('Successful transactions: 40');
+  });
+
+  it('merges headers from global and individual line', async () => {
+    const {filepath} = createTemporaryFile(`
+      -H 'x-custom-header-2: 1' ${server.baseURL}/headers
+    `);
+
+    await main({
+      args: [`-f`, filepath, '-d0', '-r2', '-c10', '-H', 'x-custom-header-1: 1'],
+      outputStream,
+    });
+
+    const output = cleanOutputLines().join('\n');
+    expect(output).toContain('GET /headers');
+    expect(output).toContain('Transactions: 20');
+    expect(output).toContain('Successful transactions: 20');
   });
 });

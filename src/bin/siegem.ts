@@ -105,16 +105,20 @@ export async function createSiege(context: SiegemContext): Promise<Siege> {
       },
     });
 
+  let headersToArray = (headers: string | string[] | undefined) => {
+    if (!headers) return [];
+    if (_.isArray(headers)) return headers;
+    return [headers];
+  };
+
+  const globalHeaders = headersToArray(parser.argv.headers);
   let constructTarget = (options: YargsParsedOutput, id: string) => {
     let url = options._[0];
     if (!url) {
       throw new Error(`Malformed request options on target "${id}": url required`);
     }
-    const headers = options.headers
-      ? _.isArray(options.headers)
-        ? options.headers
-        : [options.headers]
-      : undefined;
+
+    const headers = _.uniq([...headersToArray(options.headers), ...globalHeaders]).filter(Boolean);
 
     let target = new Target({id, urlTemplate: options._[0]});
     if (options.method) target.method(options.method);
