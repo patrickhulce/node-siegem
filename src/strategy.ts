@@ -26,7 +26,7 @@ export class Strategy {
   }
 
   repeat(n: number): Strategy {
-    this.options.repetitions = n;
+    this.options.repetitions = Number.isFinite(n) ? n : Infinity;
     return this;
   }
 
