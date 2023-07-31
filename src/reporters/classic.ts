@@ -1,10 +1,12 @@
 import _ from 'lodash';
+import * as fs from 'fs';
 import colors from 'colors/safe';
 
 interface ClassicReporterOptions {
   quiet: boolean;
   longUrl: boolean;
   stream: Pick<NodeJS.WriteStream, 'write'>;
+  requestLogFile?: string;
 }
 
 interface Item {
@@ -17,6 +19,7 @@ interface Item {
   method: string;
   url: string;
   path: string;
+  body?: Buffer[];
 }
 
 export interface ConcurrencySnapshot {
@@ -68,18 +71,6 @@ export class ClassicReporter {
     }
   }
 
-  private write(...args: string[]): void {
-    this.options.stream.write(args.filter((s) => s).join(' ') + '\n');
-  }
-
-  private stat(name: string, value: number, measurement?: string): void {
-    value = Math.round(value * 1000) / 1000;
-
-    let header = padTo(name + ':', 25);
-    let paddedValue = padTo(value.toString(), 10, true);
-    this.write(header, paddedValue, measurement || '');
-  }
-
   start() {
     this.startedAt = Date.now();
     this.write('** SIEGEM 0.1.0');
@@ -90,10 +81,28 @@ export class ClassicReporter {
   stop() {
     this.stoppedAt = Date.now();
     this.write('\nLifting the server siege...');
+    if (this.options.requestLogFile) {
+      const output = this.requests.map((request) => ({
+        ...request,
+        body: request.body ? Buffer.concat(request.body).toString('utf-8') : undefined,
+      }));
+
+      fs.writeFileSync(
+        this.options.requestLogFile,
+        `[\n${output.map((request) => JSON.stringify(request)).join(',\n')}\n]`
+      );
+    }
   }
 
   record(item: Item) {
+    item = {...item};
     this.requests.push(item);
+
+    // We only need to keep a reference to the body if it created something.
+    if (item.body && item.method !== 'POST') {
+      item.body = undefined;
+    }
+
     if (this.options.quiet) {
       return;
     }
@@ -108,6 +117,18 @@ export class ClassicReporter {
       let url = item.method + ' ' + (this.options.longUrl ? item.url : item.path);
       this.write(this.getColorized(status + duration + bytes + url, item.statusCode));
     }
+  }
+
+  private write(...args: string[]): void {
+    this.options.stream.write(args.filter((s) => s).join(' ') + '\n');
+  }
+
+  private stat(name: string, value: number, measurement?: string): void {
+    value = Math.round(value * 1000) / 1000;
+
+    let header = padTo(name + ':', 25);
+    let paddedValue = padTo(value.toString(), 10, true);
+    this.write(header, paddedValue, measurement || '');
   }
 
   report(concurrencySnapshots: ConcurrencySnapshot[]) {

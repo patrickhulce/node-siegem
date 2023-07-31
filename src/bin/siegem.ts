@@ -82,6 +82,9 @@ export async function createSiege(context: SiegemContext): Promise<Siege> {
         alias: 'f',
         describe: 'File where each line is a set of request options',
       },
+      requestLogFile: {
+        describe: 'File where responses from the siege are logged',
+      },
       chaotic: {
         describe: 'Process lines in file in random order',
         type: 'boolean',
@@ -148,7 +151,11 @@ export async function createSiege(context: SiegemContext): Promise<Siege> {
   if (options.time) strategy.timed(options.time);
   if (typeof options.delay === 'number') strategy.delay(options.delay);
 
-  let reporter = new ClassicReporter({quiet: options.quiet, stream: context.outputStream});
+  let reporter = new ClassicReporter({
+    quiet: options.quiet,
+    stream: context.outputStream,
+    requestLogFile: options.requestLogFile,
+  });
 
   let targets: Target[] = [];
   if (options.file) {
