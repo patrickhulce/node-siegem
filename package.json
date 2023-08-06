@@ -6,11 +6,10 @@
     "start": "node ./dist/cjs/bin/bin.js",
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "test": "npm run test:lint && npm run test:typecheck && npm run test:unit",
+    "test": "pnpm test:lint && pnpm test:typecheck && pnpm test:unit",
     "test:typecheck": "tsc",
     "test:lint": "eslint 'src/**/*.{js,ts}' && prettier 'src/**/*.{js,ts}' --check",
-    "test:unit": "jest",
-    "release": "semantic-release"
+    "test:unit": "jest"
   },
   "preferGlobal": true,
   "engines": {
