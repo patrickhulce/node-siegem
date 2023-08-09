@@ -18,14 +18,18 @@ describe(main, () => {
   }
 
   function cleanOutputLines(): string[] {
-    return outputStream.write.mock.calls
-      .map((args) => args[0])
-      .join('')
-      .replace(/(:\s+)\d+\.\d+/g, '$1XX')
-      .replace(/\d+ (ms|s|trans\/sec)/g, 'XX $1')
-      .replace(/ +/g, ' ')
-      .split('\n')
-      .map((line) => line.trim());
+    return (
+      outputStream.write.mock.calls
+        .map((args) => args[0])
+        .join('')
+        // eslint-disable-next-line no-control-regex
+        .replace(/\x1b\[[0-9;]*m/g, '')
+        .replace(/(:\s+)\d+\.\d+/g, '$1XX')
+        .replace(/\d+ (ms|s|trans\/sec)/g, 'XX $1')
+        .replace(/ +/g, ' ')
+        .split('\n')
+        .map((line) => line.trim())
+    );
   }
 
   beforeEach(() => {
@@ -86,7 +90,7 @@ describe(main, () => {
       "** SIEGEM 0.1.0
       ** Preparing users for battle.
       The server is now under siege...
-      [34mHTTP/1.1 200 XX ms: 2 bytes ==> GET /get[39m
+      HTTP/1.1 200 XX ms: 2 bytes ==> GET /get
 
       Lifting the server siege...
       Transactions: 100
