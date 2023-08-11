@@ -19,6 +19,11 @@
   "bin": {
     "siegem": "./dist/cjs/bin/bin.js"
   },
+  "release": {
+    "branches": [
+      "main"
+    ]
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/patrickhulce/node-siegem.git"
