@@ -9,7 +9,8 @@
     "test": "pnpm test:lint && pnpm test:typecheck && pnpm test:unit",
     "test:typecheck": "tsc",
     "test:lint": "eslint 'src/**/*.{js,ts}' && prettier 'src/**/*.{js,ts}' --check",
-    "test:unit": "jest"
+    "test:unit": "jest",
+    "release": "semantic-release"
   },
   "preferGlobal": true,
   "engines": {
