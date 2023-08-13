@@ -25,6 +25,7 @@ describe(main, () => {
         // eslint-disable-next-line no-control-regex
         .replace(/\x1b\[[0-9;]*m/g, '')
         .replace(/(:\s+)\d+\.\d+/g, '$1XX')
+        .replace(/(Concurrency:\s+)\d+/g, '$1XX')
         .replace(/\d+ (ms|s|trans\/sec)/g, 'XX $1')
         .replace(/ +/g, ' ')
         .split('\n')
